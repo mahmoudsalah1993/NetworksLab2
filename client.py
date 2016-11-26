@@ -24,7 +24,7 @@ def request_file(FILE_NAME):
 		try:
 			p = packet(0, len(FILE_NAME), 0, FILE_NAME.encode())
 			sock.sendto(p.toBuffer(), (UDP_IP, UDP_PORT))
-			print("Pkt sent")
+			print("file request sent")
 
 			data, addr = sock.recvfrom(1024)
 			
@@ -40,30 +40,29 @@ def request_file(FILE_NAME):
 
 def receive_file(file_name):
 	#sock.settimeout(10)
-	f = open(file_name, "wb") 
+	f = open(file_name, "wb")
+	print('start receiving data...')
 	while True:
-		print('receiving data...')
-		data = sock.recvfrom(1024)
+		#data = sock.recvfrom(1024)
 		try:
 			# write data to file
 			data, addr = sock.recvfrom(1024)
-			print("Pkt received")
+			print("chunk received", data)
 			pkt = parse_packet(data)
 			f.write(pkt.data)
 			ack(pkt.seqno)
-			print("ACK ",pkt.seqno)
-			if(pkt.length != 512):
+			print("ACK ", pkt.seqno)
+			if(pkt.length == 0):
 				break
 		except socket.timeout:
 			print("Timed out!")
-			break
 	f.close()
 	print('Successfully get the file')
 
 
 if __name__ == "__main__":
 	sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-	sock.settimeout(12)	#set recv timeout ==> exception socket.timeout
+	sock.settimeout(TIMEOUT_VALUE)	#set recv timeout ==> exception socket.timeout
 	request_file("p.jpg")
 	receive_file("a.jpg")
 	sock.close()

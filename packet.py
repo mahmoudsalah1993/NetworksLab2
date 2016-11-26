@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 class packet:
     def __init__(self, c=0, l=0, s=0, d=[]):
         self.chksum = c
@@ -12,13 +14,12 @@ class packet:
         res += self.data
         return res
 
-    def int_to_bytes(self, n, length):
-        res = str(n).encode()
-        while len(res) < length:
-            res = '0'.encode() + res
-        return res
+    def int_to_bytes(self, n, byteLength):
+       return (n).to_bytes(byteLength, byteorder='big', signed=False)
 
+def bytes_to_int(myBytes):
+    return int.from_bytes(myBytes, byteorder='big', signed=False)
 
 def parse_packet(p):
-    return packet(int(p[:2]), int(p[2:2 + 2]), int(p[4:4 + 4]), p[8:])
+    return packet(bytes_to_int(p[:2]), bytes_to_int(p[2:2 + 2]), bytes_to_int(p[4:4 + 4]), p[8:])
         
