@@ -49,6 +49,7 @@ def send_file(file_name, addr):
 			except socket.timeout:
 				print("Timed out!")
 		l = f.read(512)
+	print('sending package with data_len = 0')
 	sock.sendto(packet(0, 0, seqno, b'').toBuffer(), client_addr)
 	
 	f.close()
@@ -67,6 +68,8 @@ if __name__ == "__main__":
 			print((p.data).decode('ascii'))
 			ack(p.seqno, addr)
 			print("ACK", p.seqno)
-			send_file((p.data).decode('ascii'), addr)#Send file to server
+
+			if p.seqno == 0: # this is actually a file request
+				send_file((p.data).decode('ascii'), addr)#Send file to server
 		except socket.timeout:
 			pass
