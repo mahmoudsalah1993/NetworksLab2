@@ -33,8 +33,8 @@ def signal_handler(signum, frame):
 
 def request_file():
 	while True:
-		#signal.signal(signal.SIGALRM, signal_handler)
-		#signal.alarm(TIMEOUT_VALUE)
+		signal.signal(signal.SIGALRM, signal_handler)
+		signal.alarm(TIMEOUT_VALUE)
 
 		try:
 			p = packet(0, len(FILE_NAME), 0, FILE_NAME.encode())
@@ -43,9 +43,9 @@ def request_file():
 			data, addr = sock.recvfrom(1024)
 
 
-			    # check if ACK
+			# check if ACK
 			if len(data) == 8:
-					# turn the alarm off
+				signal.alarm(0)
 				break
 
 		except Exception, msg:
