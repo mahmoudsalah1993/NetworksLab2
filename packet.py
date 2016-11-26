@@ -6,9 +6,9 @@ class packet:
         self.data = d[:]
 
     def toBuffer(self):
-        res = self.int_to_bytes(self.chksum, 16)
-        res += self.int_to_bytes(self.length, 16)
-        res += self.int_to_bytes(self.seqno, 32)
+        res = self.int_to_bytes(self.chksum, 2)
+        res += self.int_to_bytes(self.length, 2)
+        res += self.int_to_bytes(self.seqno, 4)
         res += self.data
         return res
 
@@ -20,5 +20,5 @@ class packet:
 
 
 def parse_packet(p):
-    return packet(int(p[:16]), int(p[16:16 + 16]), int(p[32:32 + 32]), p[64:])
+    return packet(int(p[:2]), int(p[2:2 + 2]), int(p[4:4 + 4]), p[8:])
         

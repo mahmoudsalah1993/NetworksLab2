@@ -12,8 +12,5 @@ while True:
 	p, addr = sock.recvfrom(1024)
 	print "received packet: ", p
 	p = parse_packet(p)
-	
-	print p.chksum
-	print p.length
-	print p.seqno
-	print p.data
+	ret = packet(0, 0, p.seqno, b'')
+	sock.sendto(ret.toBuffer(), addr)
