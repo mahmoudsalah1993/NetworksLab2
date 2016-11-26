@@ -17,3 +17,8 @@ class packet:
         while len(res) < length:
             res = '0'.encode() + res
         return res
+
+
+def parse_packet(p):
+    return packet(int(p[:16]), int(p[16:16 + 16]), int(p[32:32 + 32]), p[64:])
+        
