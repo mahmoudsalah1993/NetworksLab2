@@ -68,8 +68,8 @@ def receive_file(file_name):
 if __name__ == "__main__":
 	sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	sock.settimeout(TIMEOUT_VALUE)	#set recv timeout ==> exception socket.timeout
-	sock.bind(("127.0.0.1", 1234))
-	print("port: ",1234)
+	sock.bind(("127.0.0.1", 4321))
+	print("port: ",4321)
 	request_file("p.MKV")
 	receive_file("a.MKV")
 	sock.close()
