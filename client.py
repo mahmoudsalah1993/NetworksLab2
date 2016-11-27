@@ -41,14 +41,19 @@ def request_file(FILE_NAME):
 def receive_file(file_name):
 	#sock.settimeout(10)
 	f = open(file_name, "wb")
+	expected_seqno = 1
 	print('start receiving data...')
 	while True:
 		#data = sock.recvfrom(1024)
 		try:
 			# write data to file
 			data, addr = sock.recvfrom(1024)
-			print("chunk received", data)
+			print("chunk received")
 			pkt = parse_packet(data)
+			if(pkt.seqno != expected_seqno):
+				print("Unexpected seqno ",pkt.seqno)
+				continue
+			expected_seqno += 1
 			f.write(pkt.data)
 			ack(pkt.seqno)
 			print("ACK ", pkt.seqno)
