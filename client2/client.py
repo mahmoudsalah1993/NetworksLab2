@@ -4,7 +4,8 @@ import signal
 from packet import *
 
 UDP_IP = "127.0.0.1"
-UDP_PORT = 9000
+global udp_port
+udp_port = 9000
 
 TIMEOUT_VALUE = 3
 
@@ -14,16 +15,18 @@ def signal_handler(signum, frame):
 
 #Ack received pkt
 def ack(seqno):
+	global udp_port
 	ack_pkt = packet(0, 0, seqno, b'')
-	sock.sendto(ack_pkt.toBuffer(), (UDP_IP, UDP_PORT))
+	sock.sendto(ack_pkt.toBuffer(), (UDP_IP, udp_port))
 
 def request_file(FILE_NAME):
 	while True:
 		#signal.signal(signal.SIGALRM, signal_handler)
 		#signal.alarm(TIMEOUT_VALUE)
 		try:
+			global udp_port
 			p = packet(0, len(FILE_NAME), 0, FILE_NAME.encode())
-			sock.sendto(p.toBuffer(), (UDP_IP, UDP_PORT))
+			sock.sendto(p.toBuffer(), (UDP_IP, udp_port))
 			print("file request sent")
 
 			data, addr = sock.recvfrom(1024)
@@ -31,7 +34,9 @@ def request_file(FILE_NAME):
 			ack_pkt = parse_packet(data)
 			
 			# check if ACK
-			if ack_pkt.length == 0 and ack_pkt.seqno == 0:
+			#if ack_pkt.length == 0 and ack_pkt.seqno == 0:
+			if ack_pkt.length == 0:
+				udp_port = ack_pkt.seqno
 				print("Received Ack")
 				break
 
@@ -52,6 +57,7 @@ def receive_file(file_name):
 			pkt = parse_packet(data)
 			if(pkt.seqno != expected_seqno):
 				print("Unexpected seqno ",pkt.seqno)
+				ack(pkt.seqno-1)
 				continue
 			expected_seqno += 1
 			f.write(pkt.data)
