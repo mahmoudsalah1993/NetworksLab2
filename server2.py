@@ -12,6 +12,10 @@ def handle_client(file_name, addr):
 	s.bind((UDP_IP, UDP_PORT))
 	s.settimeout(TIMEOUT_VALUE)
 
+	# ack for file request
+	s.sendto(packet(0, 0, 0, b'').toBuffer(), addr)
+	print("ACK", 0)
+				
 	print('start sending file', file_name, 'to client')
 	f = open(file_name, "rb")
 	seqno = 0
@@ -94,8 +98,6 @@ if __name__ == "__main__":
 			if p.seqno == 0 and p.chksum == p.checksum(): # this is actually a file request
 				print("File name: ", (p.data).decode('ascii'))
 				UDP_PORT += 1
-				ack(UDP_PORT, addr)
-				print("ACK", p.seqno)
 				new_process = multiprocessing.Process(target=handle_client, args=((p.data).decode('ascii'), addr))
 				new_process.daemon = True
 				new_process.start()
