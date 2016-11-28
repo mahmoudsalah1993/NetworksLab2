@@ -62,7 +62,7 @@ def ack(seqno, addr):
 def initialize_param():
 	global UDP_PORT, MAX_WINDOW_SIZE, RANDOM_SEED, plp
 
-	with open('server_param.txt') as param_file:
+	with open('server.in') as param_file:
 		UDP_PORT = int(param_file.readline())
 		MAX_WINDOW_SIZE = int(param_file.readline())
 		RANDOM_SEED = float(param_file.readline())

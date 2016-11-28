@@ -3,7 +3,7 @@ from packet import *
 from random import randint
 
 UDP_IP = "127.0.0.1"
-udp_port = 9000
+UDP_PORT = 9000
 TIMEOUT_VALUE = 3
 plp = 0.1
 
@@ -14,16 +14,16 @@ def signal_handler(signum, frame):
 def ack(seqno):
 	global udp_port
 	ack_pkt = packet(0, 0, seqno, b'')
-	sock.sendto(ack_pkt.toBuffer(), (UDP_IP, udp_port))
+	sock.sendto(ack_pkt.toBuffer(), (UDP_IP, UDP_PORT))
 
 def request_file(FILE_NAME):
 	while True:
 		#signal.signal(signal.SIGALRM, signal_handler)
 		#signal.alarm(TIMEOUT_VALUE)
 		try:
-			global udp_port
+			global UDP_PORT
 			p = packet(0, len(FILE_NAME), 0, FILE_NAME.encode())
-			sock.sendto(p.toBuffer(), (UDP_IP, udp_port))
+			sock.sendto(p.toBuffer(), (UDP_IP, UDP_PORT))
 			print("file request sent")
 
 			data, addr = sock.recvfrom(1024)
@@ -33,7 +33,7 @@ def request_file(FILE_NAME):
 			# check if ACK
 			#if ack_pkt.length == 0 and ack_pkt.seqno == 0:
 			if ack_pkt.length == 0:
-				udp_port = ack_pkt.seqno
+				UDP_PORT = ack_pkt.seqno
 				print("Received Ack")
 				break
 
@@ -73,11 +73,21 @@ def receive_file(file_name):
 	print('Successfully get the file')
 
 
+def initialize_param():
+	global UDP_IP,UDP_PORT, CLIENT_PORT, FILE_NAME 
+
+	with open('client.in') as param_file:
+		UDP_IP = param_file.readline()
+		UDP_PORT = int(param_file.readline())
+		CLIENT_PORT = int(param_file.readline())
+		FILE_NAME = param_file.readline()
+
 if __name__ == "__main__":
+	initialize_param()
 	sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	sock.settimeout(TIMEOUT_VALUE)	#set recv timeout ==> exception socket.timeout
-	sock.bind(("127.0.0.1", 1234))
-	print("port: ",1234)
+	sock.bind(("127.0.0.1", CLIENT_PORT))
+	print("port: ",CLIENT_PORT)
 	# request_file("p.MKV")
 	# receive_file("a.MKV")
 
