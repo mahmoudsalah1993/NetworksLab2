@@ -50,7 +50,7 @@ def handle_client(file_name, addr):
 
 
 
-TIMEOUT_VALUE = 3
+TIMEOUT_VALUE = 1
 UDP_IP = "127.0.0.1"
 UDP_PORT = 9000
 MAX_WINDOW_SIZE = 1000
