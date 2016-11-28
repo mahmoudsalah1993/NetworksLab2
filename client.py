@@ -32,7 +32,7 @@ def request_file(FILE_NAME):
 			
 			# check if ACK
 			#if ack_pkt.length == 0 and ack_pkt.seqno == 0:
-			if ack_pkt.length == 0 and ack_pkt.seqno == 0:
+			if ack_pkt.length == 0 and ack_pkt.seqno == 0 and ack_pkt.chksum == ack_pkt.checksum():
 				print("Received Ack")
 				print('change server port from:', UDP_PORT)
 				UDP_PORT = addr[1]
@@ -54,9 +54,12 @@ def receive_file(file_name):
 			data, addr = sock.recvfrom(1024)
 			print("chunk received")
 			pkt = parse_packet(data)
-			if(pkt.seqno != expected_seqno or pkt.chksum != pkt.checksum):
+			if(pkt.seqno != expected_seqno):
 				print("Unexpected seqno: ",pkt.seqno, "Expecting: ",expected_seqno)
 				ack(expected_seqno -1)
+				continue
+			if(pkt.chksum != pkt.checksum()):
+				print("wrong checksum Expected: ", pkt.chksum, " calculated: ", pkt.checksum)
 				continue
 			expected_seqno += 1
 			f.write(pkt.data)
@@ -79,11 +82,11 @@ def initialize_param():
 	global UDP_IP,UDP_PORT, CLIENT_PORT, FILE_NAME 
 
 	with open('client.in') as param_file:
-		UDP_IP = param_file.readline()
+		UDP_IP = param_file.readline().rstrip('\n')
 		UDP_PORT = int(param_file.readline())
 		CLIENT_PORT = int(param_file.readline())
-		FILE_NAME = param_file.readline()
-
+		FILE_NAME = param_file.readline().rstrip('\n')
+		
 if __name__ == "__main__":
 	initialize_param()
 	sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -93,6 +96,6 @@ if __name__ == "__main__":
 	# request_file("p.MKV")
 	# receive_file("a.MKV")
 
-	request_file("p.jpg")
-	receive_file("a.jpg")
+	request_file(FILE_NAME)
+	receive_file(FILE_NAME+"copy")
 	sock.close()

@@ -36,7 +36,7 @@ def handle_client(file_name, addr):
 				data, ack_addr = s.recvfrom(1024)
 				ack_pkt = parse_packet(data)
 				# check if ACK
-				if (ack_pkt.length == 0 and ack_pkt.seqno == seqno and ack_addr == addr):
+				if (ack_pkt.length == 0 and ack_pkt.seqno == seqno and ack_addr == addr and ack_pkt.chksum == ack_pkt.checksum()):
 					print("Received Ack for: ",seqno,"to ",addr)
 					break
 			except socket.timeout:
@@ -89,16 +89,16 @@ if __name__ == "__main__":
 		try:
 			p, addr = sock.recvfrom(1024)
 			print("Main received packet: ", p)
-			p = parse_packet(p)
+			pkt = parse_packet(p)
 			# print("Chksum: ", p.chksum)
 			# print("length: ", p.length)
 			# print("seqno: ", p.seqno)
 			# print("File name: ", (p.data).decode('ascii'))
 
-			if p.seqno == 0 and p.chksum == p.checksum(): # this is actually a file request
-				print("File name: ", (p.data).decode('ascii'))
+			if pkt.seqno == 0 and pkt.chksum==pkt.checksum(): # this is actually a file request
+				print("File name: ", (pkt.data).decode('ascii'))
 				UDP_PORT += 1
-				new_process = multiprocessing.Process(target=handle_client, args=((p.data).decode('ascii'), addr))
+				new_process = multiprocessing.Process(target=handle_client, args=((pkt.data).decode('ascii'), addr))
 				new_process.daemon = True
 				new_process.start()
 		except socket.timeout:
