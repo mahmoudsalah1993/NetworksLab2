@@ -3,7 +3,7 @@ from packet import *
 from random import randint
 
 UDP_IP = "127.0.0.1"
-UDP_PORT = 9000
+UDP_PORT = 9010
 TIMEOUT_VALUE = 3
 plp = 0.1
 
@@ -32,9 +32,11 @@ def request_file(FILE_NAME):
 			
 			# check if ACK
 			#if ack_pkt.length == 0 and ack_pkt.seqno == 0:
-			if ack_pkt.length == 0:
-				UDP_PORT = ack_pkt.seqno
+			if ack_pkt.length == 0 and ack_pkt.seqno == 0:
 				print("Received Ack")
+				print('change server port from:', UDP_PORT)
+				UDP_PORT = addr[1]
+				print('to', UDP_PORT)
 				break
 
 		except socket.timeout:
