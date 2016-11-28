@@ -28,7 +28,7 @@ def handle_client(file_name, addr):
 
 		while True:	#send pkt and wait for ACK
 			try:
-				if(randint(1,10) > 10*plp):
+				if(random.randint(1,10) > 10*plp):
 					s.sendto(pkt.toBuffer(), addr)
 					print("Pkt sent ", seqno,"to ",addr)
 				else:
