@@ -49,9 +49,8 @@ def handle_client(file_name, addr):
 TIMEOUT_VALUE = 3
 UDP_IP = "127.0.0.1"
 UDP_PORT = 9000
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock.bind((UDP_IP, UDP_PORT))
-sock.settimeout(TIMEOUT_VALUE)
+MAX_WINDOW_SIZE = 1000
+RANDOM_SEED = 0.6
 
 print("Socket started:")
 
@@ -60,8 +59,28 @@ def ack(seqno, addr):
 	ack_pkt = packet(0, 0, seqno, b'')
 	sock.sendto(ack_pkt.toBuffer(), addr)
 
+def initialize_param():
+	global UDP_PORT, MAX_WINDOW_SIZE, RANDOM_SEED, plp
+
+	with open('server_param.txt') as param_file:
+		UDP_PORT = int(param_file.readline())
+		MAX_WINDOW_SIZE = int(param_file.readline())
+		RANDOM_SEED = float(param_file.readline())
+		plp = float(param_file.readline())
 
 if __name__ == "__main__":
+	initialize_param()
+
+	print('Set listening port to :', UDP_PORT)
+	print('Set MAX_WINDOW_SIZE to :', MAX_WINDOW_SIZE)
+	print('Set RANDOM_SEED to :', RANDOM_SEED)
+	print('Set probability of packet loss to :', plp)
+
+	sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+	sock.bind((UDP_IP, UDP_PORT))
+	sock.settimeout(TIMEOUT_VALUE)
+
+
 	while True:
 		try:
 			p, addr = sock.recvfrom(1024)

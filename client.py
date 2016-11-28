@@ -3,7 +3,6 @@ from packet import *
 from random import randint
 
 UDP_IP = "127.0.0.1"
-global udp_port
 udp_port = 9000
 TIMEOUT_VALUE = 3
 plp = 0.1
