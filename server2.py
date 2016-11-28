@@ -2,7 +2,7 @@ import socket
 import time
 from packet import * 
 import multiprocessing
-from random import randint
+import random
 
 plp = 0.1
 
@@ -71,6 +71,7 @@ def initialize_param():
 		MAX_WINDOW_SIZE = int(param_file.readline())
 		RANDOM_SEED = float(param_file.readline())
 		plp = float(param_file.readline())
+		random.seed(RANDOM_SEED)
 
 if __name__ == "__main__":
 	initialize_param()
