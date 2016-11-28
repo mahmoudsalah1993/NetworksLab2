@@ -32,7 +32,7 @@ def request_file(FILE_NAME):
 			
 			# check if ACK
 			#if ack_pkt.length == 0 and ack_pkt.seqno == 0:
-			if ack_pkt.length == 0:
+			if ack_pkt.length == 0 and ack_pkt.chksum == ack_pkt.checksum:
 				UDP_PORT = ack_pkt.seqno
 				print("Received Ack")
 				break
@@ -52,7 +52,7 @@ def receive_file(file_name):
 			data, addr = sock.recvfrom(1024)
 			print("chunk received")
 			pkt = parse_packet(data)
-			if(pkt.seqno != expected_seqno):
+			if(pkt.seqno != expected_seqno or pkt.chksum != pkt.checksum):
 				print("Unexpected seqno: ",pkt.seqno, "Expecting: ",expected_seqno)
 				ack(expected_seqno -1)
 				continue

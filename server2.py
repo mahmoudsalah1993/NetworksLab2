@@ -91,7 +91,7 @@ if __name__ == "__main__":
 			# print("seqno: ", p.seqno)
 			# print("File name: ", (p.data).decode('ascii'))
 
-			if p.seqno == 0: # this is actually a file request
+			if p.seqno == 0 and p.chksum == p.checksum(): # this is actually a file request
 				print("File name: ", (p.data).decode('ascii'))
 				UDP_PORT += 1
 				ack(UDP_PORT, addr)
