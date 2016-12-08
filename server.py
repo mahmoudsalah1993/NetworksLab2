@@ -3,10 +3,28 @@ import time
 from packet import * 
 import multiprocessing
 import random
+import sched # for scheduling
 
+TIMEOUT_VALUE = 1
+UDP_IP = "127.0.0.1"
+UDP_PORT = 9000
+MAX_WINDOW_SIZE = 10
+RANDOM_SEED = 0.6
 plp = 0.1
 
+def send_one_pkt(socket, pkt, addr):
+	sent = False
+	while not sent:
+		try:
+			s.sendto(pkt.toBuffer(), addr)
+			sent = True
+		except socket.timeout:
+			sent = False
+			print('Timed out')
+
 def handle_client(file_name, addr):
+	global MAX_WINDOW_SIZE
+
 	#creating new soket
 	s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	s.bind((UDP_IP, UDP_PORT))
@@ -15,46 +33,22 @@ def handle_client(file_name, addr):
 	# ack for file request
 	s.sendto(packet(0, 0, 0, b'').toBuffer(), addr)
 	print("ACK", 0)
-				
+	
 	print('start sending file', file_name, 'to client')
 	f = open(file_name, "rb")
+	base = 0 # sending window base (refer to lectures)
+	# base should be updated on receiving ACKs
 	seqno = 0
-	l = f.read(512)
-	print("Start sending the file: ", addr)
-	#Start sending the file
-	while (l):
-		seqno += 1
-		pkt = packet(0, len(l), seqno, l)
-
-		while True:	#send pkt and wait for ACK
-			try:
-				if(random.randint(1,10) > 10*plp):
-					s.sendto(pkt.toBuffer(), addr)
-					print("Pkt sent ", seqno,"to ",addr)
-				else:
-					print("Pkt wasn't sent ", seqno,"to ",addr)
-				data, ack_addr = s.recvfrom(1024)
-				ack_pkt = parse_packet(data)
-				# check if ACK
-				if (ack_pkt.length == 0 and ack_pkt.seqno == seqno and ack_addr == addr and ack_pkt.chksum == ack_pkt.checksum()):
-					print("Received Ack for: ",seqno,"to ",addr)
-					break
-			except socket.timeout:
-				print("Timed out!")
+	mySched = sched.scheduler(time.time, time.sleep)
+	# schedule MAX_WINDOW_SIZE packets to send
+	for i in range(base, base + MAX_WINDOW_SIZE):
 		l = f.read(512)
-	print('sending package with data_len = 0 to', addr)
-	s.sendto(packet(0, 0, seqno + 1, b'').toBuffer(), addr)
-	f.close()
-	print("-------File sent---------")
+		pkt = packet(0, len(l), seqno, l)
+		mySched.enter(1, 1 + base + MAX_WINDOW_SIZE - i, send_one_pkt, kwargs={'socket' : s, 'pkt' : pkt, 'addr' : addr})
+	mySched.run()
+		
 
 
-
-
-TIMEOUT_VALUE = 1
-UDP_IP = "127.0.0.1"
-UDP_PORT = 9000
-MAX_WINDOW_SIZE = 1000
-RANDOM_SEED = 0.6
 
 print("Socket started:")
 
