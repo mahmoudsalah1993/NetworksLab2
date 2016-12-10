@@ -6,6 +6,7 @@ import random
 import threading
 import sched
 
+# NOTE : all socket.settimeout() is commented out
 
 TIMEOUT_VALUE = 1
 UDP_IP = "127.0.0.1"
@@ -25,7 +26,7 @@ active_events = {}
 # helper functions for the scheduler
 def add_job(s, pkt, addr):
 	with lock:
-		event = mySched.enter(TIMEOUT_VALUE, SCHEDULING_CONST - pkt.seqno, send_one_pkt, kwargs={'sockets': s, 'pkg':pkt, 'addr':addr})
+		event = mySched.enter(TIMEOUT_VALUE, SCHEDULING_CONST - pkt.seqno, send_one_pkt, kwargs={'socket': s, 'pkt':pkt, 'addr':addr})
 		active_events[pkt.seqno] = event
 
 
@@ -39,6 +40,7 @@ def remove_job(pkt):
 def send_one_pkt(socket, pkt, addr):
 	# this function is mainly added for use by mySched
 	socket.sendto(pkt.toBuffer(), addr)
+	add_job(socket, pkt, addr)
 	print('sent pkt with seqno:', pkt.seqno)
 
 def send_pkts(s, addr, file_name):
@@ -55,12 +57,16 @@ def send_pkts(s, addr, file_name):
 	f.close()
 
 def recieve_ACKS(s):
-	data, ack_addr = s.recvfrom(1024)
-	ack_pkt = parse_packet(data)
-	# check if ACK (removed check for ack_addr for now)
-	if (ack_pkt.length == 0 and ack_pkt.chksum == ack_pkt.checksum()):
-		print("Received Ack for: ", ack_pkt.seqno, "to ",addr)
-		remove_job(pkt)
+	while 1:
+		print('Waiting For ACKS...')
+		data, ack_addr = s.recvfrom(1024)
+		ack_pkt = parse_packet(data)
+		# check if ACK (removed check for ack_addr for now)
+		if (ack_pkt.length == 0 and ack_pkt.chksum == ack_pkt.checksum()):
+			print("Received Ack for: ", ack_pkt.seqno, "to ",addr)
+			remove_job(pkt)
+		else:
+			print('received incorrect ACK')
 
 
 def handle_client(file_name, addr):
@@ -69,7 +75,7 @@ def handle_client(file_name, addr):
 	#creating new soket for that client
 	s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	s.bind((UDP_IP, UDP_PORT))
-	s.settimeout(TIMEOUT_VALUE)
+	#s.settimeout(TIMEOUT_VALUE)
 
 	# ack for file request
 	s.sendto(packet(0, 0, 0, b'').toBuffer(), addr)
@@ -113,7 +119,7 @@ if __name__ == "__main__":
 
 	sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	sock.bind((UDP_IP, UDP_PORT))
-	sock.settimeout(TIMEOUT_VALUE)
+	#sock.settimeout(TIMEOUT_VALUE)
 
 
 	while True:
