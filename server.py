@@ -20,6 +20,7 @@ plp = 0.1
 
 lock = threading.Lock()
 base = 1
+largest_seqno_sent = 0 # largest seqno sent and recieved ACK for it
 # shared between sender and reciever threads 
 # SHOULDN'T BE ACCESSED DIRECTLY 
 mySched = sched.scheduler(time.time, time.sleep)
@@ -35,16 +36,17 @@ def add_job(s, pkt, addr):
 
 
 def remove_job(pkt):
-	global base
+	global base, largest_seqno_sent
 	with lock:
 		try:
 			if pkt.seqno in active_events.keys():
+				largest_seqno_sent = max(largest_seqno_sent, pkt.seqno)
 				mySched.cancel(active_events[pkt.seqno])
 				del active_events[pkt.seqno]
-
-			while not base in active_events.keys():
-				base += 1
-			print('updated base to', base)
+				
+				while not base in active_events.keys() and base <= largest_seqno_sent:
+					base += 1
+				print('Updated base to', base)
 
 		except ValueError:
 			print('Received ack for', pkt.seqno, 'but it\'s not in queue')
@@ -64,32 +66,34 @@ def send_pkts(s, addr, file_name):
 	next_seq = 1
 
 	while 1:
+		print('begining sending with next_seq', next_seq, 'base', base)
+		
 		while next_seq < base + MAX_WINDOW_SIZE:
 			l = f.read(512)
 			pkt = packet(0, len(l), next_seq, l)
 			send_one_pkt(s, pkt, addr)
 			# add a job to scheduler in case of sending failed
 			add_job(s, pkt, addr)
-			mySched.run(False)
 			next_seq += 1
+		
+		mySched.run()
 		# check if still there some part of the file not sent
 		if f.tell() == os.fstat(f.fileno()).st_size:
 			f.close()
-			print('done sending', file_name, 'to', addr)
+			print('sender thread done', file_name, 'to', addr)
 			return
 		else:
 			continue
 
-def recieve_ACKS(s):
-	while 1:
+def recieve_ACKS(s, sender_thread):
+	while sender_thread.is_alive():
 		print('Waiting For ACKS...')
 		data, ack_addr = s.recvfrom(1024)
 		ack_pkt = parse_packet(data)
 		# check if ACK (removed check for ack_addr for now)
 		if (ack_pkt.length == 0 and ack_pkt.chksum == ack_pkt.checksum()):
 			print("Received Ack for: ", ack_pkt.seqno, "from",addr)
-			if remove_job(ack_pkt):
-				break
+			remove_job(ack_pkt)
 		else:
 			print('received incorrect ACK')
 
@@ -107,13 +111,17 @@ def handle_client(file_name, addr):
 	print("ACK", 0)
 
 	sender_thread = threading.Thread(target=send_pkts, args=(s, addr, file_name,))
-	receiver_thread = threading.Thread(target=recieve_ACKS, args=(s,))
+	receiver_thread = threading.Thread(target=recieve_ACKS, args=(s, sender_thread))
 
 	sender_thread.start()
 	receiver_thread.start()
 
 	# wait for sending to finish and the clients ACK the sent packets
+	sender_thread.join()
 	receiver_thread.join()
+
+	s.sendto(packet(0, 0, 10 ** 7, b'').toBuffer(), addr)
+
 	print('finished handling the client', addr)
 	print('length of sched queue', len(mySched.queue))
 
