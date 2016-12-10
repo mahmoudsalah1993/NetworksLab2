@@ -72,6 +72,7 @@ def receive_file(file_name):
 				ack(pkt.seqno)
 				print("ACK ", pkt.seqno)
 			else:
+				expected_seqno -= 1
 				print("ACK wasn't sent ", pkt.seqno)
 			
 			if(pkt.length == 0):

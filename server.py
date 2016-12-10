@@ -30,9 +30,15 @@ active_events = {}
 # helper functions for the scheduler
 def add_job(s, pkt, addr):
 	with lock:
-		if not pkt.seqno in active_events.keys():
-			event = mySched.enter(TIMEOUT_VALUE, SCHEDULING_CONST - pkt.seqno, send_one_pkt, kwargs={'socket': s, 'pkt':pkt, 'addr':addr})
-			active_events[pkt.seqno] = event
+		if pkt.seqno in active_events.keys():
+			try:
+				mySched.cancel(active_events[pkt.seqno])
+			except ValueError:
+				pass
+			del active_events[pkt.seqno]
+
+		event = mySched.enter(TIMEOUT_VALUE, SCHEDULING_CONST - pkt.seqno, send_one_pkt, kwargs={'socket': s, 'pkt':pkt, 'addr':addr})
+		active_events[pkt.seqno] = event
 
 
 def remove_job(pkt):
@@ -50,13 +56,13 @@ def remove_job(pkt):
 
 		except ValueError:
 			print('Received ack for', pkt.seqno, 'but it\'s not in queue')
-	print(' ***** active_events', list(active_events.keys()))
+	print('*****active_events', list(active_events.keys()), 'sched queue size', len(mySched.queue))
 	return len(list(active_events.keys())) == 0
 
 def send_one_pkt(socket, pkt, addr):
 	# this function is mainly added for use by mySched
 	socket.sendto(pkt.toBuffer(), addr)
-	print('sent pkt with seqno:', pkt.seqno)
+	print(' ==>> sent pkt with seqno:', pkt.seqno)
 	add_job(socket, pkt, addr)
 
 def send_pkts(s, addr, file_name):
@@ -66,7 +72,7 @@ def send_pkts(s, addr, file_name):
 	next_seq = 1
 
 	while 1:
-		print('begining sending with next_seq', next_seq, 'base', base)
+		# print('begining sending with next_seq', next_seq, 'base', base)
 		
 		while next_seq < base + MAX_WINDOW_SIZE:
 			l = f.read(512)
