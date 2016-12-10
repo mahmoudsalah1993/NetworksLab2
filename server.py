@@ -16,7 +16,9 @@ RANDOM_SEED = 0.6
 SCHEDULING_CONST = 10 ** 8
 plp = 0.1
 
+
 lock = threading.Lock()
+base = 1
 # shared between sender and reciever threads 
 # SHOULDN'T BE ACCESSED DIRECTLY 
 mySched = sched.scheduler(time.time, time.sleep)
@@ -32,11 +34,17 @@ def add_job(s, pkt, addr):
 
 
 def remove_job(pkt):
+	global base
 	with lock:
 		try:
 			if pkt.seqno in active_events.keys():
 				mySched.cancel(active_events[pkt.seqno])
 				del active_events[pkt.seqno]
+
+			while not base in active_events.keys():
+				base += 1
+			print('updated base to', base)
+
 		except ValueError:
 			print('Received ack for', pkt.seqno, 'but it\'s not in queue')
 	print(' ***** active_events', list(active_events.keys()))
@@ -49,9 +57,9 @@ def send_one_pkt(socket, pkt, addr):
 	add_job(socket, pkt, addr)
 
 def send_pkts(s, addr, file_name):
+	global base
 	print('start sending file', file_name, 'to client')
 	f = open(file_name, "rb")
-	base = 1
 	for i in range(MAX_WINDOW_SIZE):
 		l = f.read(512)
 		pkt = packet(0, len(l), base + i, l)
