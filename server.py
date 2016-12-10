@@ -33,10 +33,13 @@ def add_job(s, pkt, addr):
 def remove_job(pkt):
 	with lock:
 		try:
-			mySched.cancel(active_events[pkt.seqno])
-		except:
+			if pkt.seqno in active_events.keys():
+				mySched.cancel(active_events[pkt.seqno])
+				del active_events[pkt.seqno]
+		except ValueError:
 			print('Received ack for', pkt.seqno, 'but it\'s not in queue')
-	print('*****************active_events', list(active_events.keys()))
+	print(' ***** active_events', list(active_events.keys()))
+	return len(list(active_events.keys())) == 0
 
 def send_one_pkt(socket, pkt, addr):
 	# this function is mainly added for use by mySched
@@ -66,7 +69,8 @@ def recieve_ACKS(s):
 		# check if ACK (removed check for ack_addr for now)
 		if (ack_pkt.length == 0 and ack_pkt.chksum == ack_pkt.checksum()):
 			print("Received Ack for: ", ack_pkt.seqno, "from",addr)
-			remove_job(ack_pkt)
+			if remove_job(ack_pkt):
+				break
 		else:
 			print('received incorrect ACK')
 
