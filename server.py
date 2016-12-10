@@ -36,17 +36,18 @@ def remove_job(pkt):
 			mySched.cancel(active_events[pkt.seqno])
 		except:
 			print('Received ack for', pkt.seqno, 'but it\'s not in queue')
+	print('*****************active_events', list(active_events.keys()))
 
 def send_one_pkt(socket, pkt, addr):
 	# this function is mainly added for use by mySched
 	socket.sendto(pkt.toBuffer(), addr)
-	add_job(socket, pkt, addr)
 	print('sent pkt with seqno:', pkt.seqno)
+	add_job(socket, pkt, addr)
 
 def send_pkts(s, addr, file_name):
 	print('start sending file', file_name, 'to client')
 	f = open(file_name, "rb")
-	base = 0	
+	base = 1
 	for i in range(MAX_WINDOW_SIZE):
 		l = f.read(512)
 		pkt = packet(0, len(l), base + i, l)
@@ -55,6 +56,7 @@ def send_pkts(s, addr, file_name):
 		add_job(s, pkt, addr)
 	mySched.run()
 	f.close()
+	print('done sending', file_name, 'to', addr)
 
 def recieve_ACKS(s):
 	while 1:
@@ -63,8 +65,8 @@ def recieve_ACKS(s):
 		ack_pkt = parse_packet(data)
 		# check if ACK (removed check for ack_addr for now)
 		if (ack_pkt.length == 0 and ack_pkt.chksum == ack_pkt.checksum()):
-			print("Received Ack for: ", ack_pkt.seqno, "to ",addr)
-			remove_job(pkt)
+			print("Received Ack for: ", ack_pkt.seqno, "from",addr)
+			remove_job(ack_pkt)
 		else:
 			print('received incorrect ACK')
 
