@@ -3,61 +3,11 @@ import time
 from packet import * 
 import multiprocessing
 import random
-import threading
-import sched
 
-
-TIMEOUT_VALUE = 1
-UDP_IP = "127.0.0.1"
-UDP_PORT = 9000
-MAX_WINDOW_SIZE = 10
-RANDOM_SEED = 0.6
-SCHEDULING_CONST = 10 ** 8
 plp = 0.1
 
-lock = threading.Lock()
-# shared between sender and reciever threads 
-# SHOULDN'T BE ACCESSED DIRECTLY 
-mySched = sched.scheduler(time.time, time.sleep)
-
-# map from seqno of pkt to its event
-active_events = {}
-# helper functions for the scheduler
-def add_job(pkt, addr):
-	with lock:
-		event = s.enter(TIMEOUT_VALUE, SCHEDULING_CONST - pkt.seqno, send_one_pkt, kwargs={'pkg':pkt, 'addr':addr})
-		active_events[pkt.seqno] = event
-
-
-def remove_job(pkt):
-	with lock:
-		mySched.cancel(active_events[pkt.seqno])
-
-def send_one_pkt(pkt, addr):
-	# this function is mainly added for use by mySched
-	s.sendto(pkt.toBuffer(), addr)
-
-def send_pkts(s, addr):
-	print('start sending file', file_name, 'to client')
-	f = open(file_name, "rb")
-	base = 0	
-	for i in range(MAX_WINDOW_SIZE):
-		f.read(512)
-		pkt = packet(0, len(l), base + i, l)
-		send_one_pkt(pkt)	
-		# add a job to scheduler in case of sending failed
-		add_job(pkt, addr)
-	mySched.run()
-	f.close()
-
-def recieve_ACKS(s):
-	
-
-
 def handle_client(file_name, addr):
-	global MAX_WINDOW_SIZE
-
-	#creating new soket for that client
+	#creating new soket
 	s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	s.bind((UDP_IP, UDP_PORT))
 	s.settimeout(TIMEOUT_VALUE)
@@ -65,17 +15,46 @@ def handle_client(file_name, addr):
 	# ack for file request
 	s.sendto(packet(0, 0, 0, b'').toBuffer(), addr)
 	print("ACK", 0)
+				
+	print('start sending file', file_name, 'to client')
+	f = open(file_name, "rb")
+	seqno = 0
+	l = f.read(512)
+	print("Start sending the file: ", addr)
+	#Start sending the file
+	while (l):
+		seqno += 1
+		pkt = packet(0, len(l), seqno, l)
 
-	sender_thread = threading.Thread(target=send_pkts, args=(s, addr,))
-	receiver_thread = threading.Thread(target=recieve_ACKS, args=(s,))
+		while True:	#send pkt and wait for ACK
+			try:
+				if(random.randint(1,10) > 10*plp):
+					s.sendto(pkt.toBuffer(), addr)
+					print("Pkt sent ", seqno,"to ",addr)
+				else:
+					print("Pkt wasn't sent ", seqno,"to ",addr)
+				data, ack_addr = s.recvfrom(1024)
+				ack_pkt = parse_packet(data)
+				# check if ACK
+				if (ack_pkt.length == 0 and ack_pkt.seqno == seqno and ack_addr == addr and ack_pkt.chksum == ack_pkt.checksum()):
+					print("Received Ack for: ",seqno,"to ",addr)
+					break
+			except socket.timeout:
+				print("Timed out!")
+		l = f.read(512)
+	print('sending package with data_len = 0 to', addr)
+	s.sendto(packet(0, 0, seqno + 1, b'').toBuffer(), addr)
+	f.close()
+	print("-------File sent---------")
 
-	sender_thread.start()
-	receiver_thread.start()
-
-	# wait for sending to finish
-	receiver_thread.join()
 
 
+
+TIMEOUT_VALUE = 1
+UDP_IP = "127.0.0.1"
+UDP_PORT = 9000
+MAX_WINDOW_SIZE = 1000
+RANDOM_SEED = 0.6
 
 print("Socket started:")
 

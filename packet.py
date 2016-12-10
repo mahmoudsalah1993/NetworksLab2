@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 class packet:
+    # WARNING : the parameter c is not used
     def __init__(self, c=0, l=0, s=0, d=[]):
         self.length = l
         self.seqno = s
