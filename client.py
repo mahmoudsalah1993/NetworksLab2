@@ -64,15 +64,15 @@ def receive_file(file_name):
 			expected_seqno += 1
 			f.write(pkt.data)
 			
-			# removed simulated packets loss
-			ack(pkt.seqno)
-			print("ACK ", pkt.seqno)
+			# # removed simulated packets loss
+			# ack(pkt.seqno)
+			# print("ACK ", pkt.seqno)
 			
-			# if(randint(1,10) > 10*plp):
-			# 	ack(pkt.seqno)
-			# 	print("ACK ", pkt.seqno)
-			# else:
-			# 	print("ACK wasn't sent ", pkt.seqno)
+			if(randint(1,10) > 10*plp):
+				ack(pkt.seqno)
+				print("ACK ", pkt.seqno)
+			else:
+				print("ACK wasn't sent ", pkt.seqno)
 			
 			if(pkt.length == 0):
 				break
