@@ -5,6 +5,7 @@ import multiprocessing
 import random
 import threading
 import sched
+import os
 
 # NOTE : all socket.settimeout() is commented out
 
@@ -60,15 +61,24 @@ def send_pkts(s, addr, file_name):
 	global base
 	print('start sending file', file_name, 'to client')
 	f = open(file_name, "rb")
-	for i in range(MAX_WINDOW_SIZE):
-		l = f.read(512)
-		pkt = packet(0, len(l), base + i, l)
-		send_one_pkt(s, pkt, addr)	
-		# add a job to scheduler in case of sending failed
-		add_job(s, pkt, addr)
-	mySched.run()
-	f.close()
-	print('done sending', file_name, 'to', addr)
+	next_seq = 1
+
+	while 1:
+		while next_seq < base + MAX_WINDOW_SIZE:
+			l = f.read(512)
+			pkt = packet(0, len(l), next_seq, l)
+			send_one_pkt(s, pkt, addr)
+			# add a job to scheduler in case of sending failed
+			add_job(s, pkt, addr)
+			mySched.run(False)
+			next_seq += 1
+		# check if still there some part of the file not sent
+		if f.tell() == os.fstat(f.fileno()).st_size:
+			f.close()
+			print('done sending', file_name, 'to', addr)
+			return
+		else:
+			continue
 
 def recieve_ACKS(s):
 	while 1:
@@ -102,7 +112,7 @@ def handle_client(file_name, addr):
 	sender_thread.start()
 	receiver_thread.start()
 
-	# wait for sending to finish
+	# wait for sending to finish and the clients ACK the sent packets
 	receiver_thread.join()
 	print('finished handling the client', addr)
 	print('length of sched queue', len(mySched.queue))
