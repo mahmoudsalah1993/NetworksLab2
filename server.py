@@ -23,35 +23,44 @@ mySched = sched.scheduler(time.time, time.sleep)
 # map from seqno of pkt to its event
 active_events = {}
 # helper functions for the scheduler
-def add_job(pkt, addr):
+def add_job(s, pkt, addr):
 	with lock:
-		event = s.enter(TIMEOUT_VALUE, SCHEDULING_CONST - pkt.seqno, send_one_pkt, kwargs={'pkg':pkt, 'addr':addr})
+		event = mySched.enter(TIMEOUT_VALUE, SCHEDULING_CONST - pkt.seqno, send_one_pkt, kwargs={'sockets': s, 'pkg':pkt, 'addr':addr})
 		active_events[pkt.seqno] = event
 
 
 def remove_job(pkt):
 	with lock:
-		mySched.cancel(active_events[pkt.seqno])
+		try:
+			mySched.cancel(active_events[pkt.seqno])
+		except:
+			print('Received ack for', pkt.seqno, 'but it\'s not in queue')
 
-def send_one_pkt(pkt, addr):
+def send_one_pkt(socket, pkt, addr):
 	# this function is mainly added for use by mySched
-	s.sendto(pkt.toBuffer(), addr)
+	socket.sendto(pkt.toBuffer(), addr)
+	print('sent pkt with seqno:', pkt.seqno)
 
-def send_pkts(s, addr):
+def send_pkts(s, addr, file_name):
 	print('start sending file', file_name, 'to client')
 	f = open(file_name, "rb")
 	base = 0	
 	for i in range(MAX_WINDOW_SIZE):
-		f.read(512)
+		l = f.read(512)
 		pkt = packet(0, len(l), base + i, l)
-		send_one_pkt(pkt)	
+		send_one_pkt(s, pkt, addr)	
 		# add a job to scheduler in case of sending failed
-		add_job(pkt, addr)
+		add_job(s, pkt, addr)
 	mySched.run()
 	f.close()
 
 def recieve_ACKS(s):
-	
+	data, ack_addr = s.recvfrom(1024)
+	ack_pkt = parse_packet(data)
+	# check if ACK (removed check for ack_addr for now)
+	if (ack_pkt.length == 0 and ack_pkt.chksum == ack_pkt.checksum()):
+		print("Received Ack for: ", ack_pkt.seqno, "to ",addr)
+		remove_job(pkt)
 
 
 def handle_client(file_name, addr):
@@ -66,7 +75,7 @@ def handle_client(file_name, addr):
 	s.sendto(packet(0, 0, 0, b'').toBuffer(), addr)
 	print("ACK", 0)
 
-	sender_thread = threading.Thread(target=send_pkts, args=(s, addr,))
+	sender_thread = threading.Thread(target=send_pkts, args=(s, addr, file_name,))
 	receiver_thread = threading.Thread(target=recieve_ACKS, args=(s,))
 
 	sender_thread.start()
@@ -117,8 +126,8 @@ if __name__ == "__main__":
 			# print("seqno: ", p.seqno)
 			# print("File name: ", (p.data).decode('ascii'))
 
-			if pkt.seqno == 0 and pkt.chksum==pkt.checksum(): # this is actually a file request
-				print("File name: ", (pkt.data).decode('ascii'))
+			if pkt.seqno == 0 and pkt.chksum == pkt.checksum(): # this is actually a file request
+				print("File name: \"",(pkt.data).decode('ascii'), "\"")
 				UDP_PORT += 1
 				new_process = multiprocessing.Process(target=handle_client, args=((pkt.data).decode('ascii'), addr))
 				new_process.daemon = True
