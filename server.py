@@ -26,8 +26,9 @@ active_events = {}
 # helper functions for the scheduler
 def add_job(s, pkt, addr):
 	with lock:
-		event = mySched.enter(TIMEOUT_VALUE, SCHEDULING_CONST - pkt.seqno, send_one_pkt, kwargs={'socket': s, 'pkt':pkt, 'addr':addr})
-		active_events[pkt.seqno] = event
+		if not pkt.seqno in active_events.keys():
+			event = mySched.enter(TIMEOUT_VALUE, SCHEDULING_CONST - pkt.seqno, send_one_pkt, kwargs={'socket': s, 'pkt':pkt, 'addr':addr})
+			active_events[pkt.seqno] = event
 
 
 def remove_job(pkt):
@@ -95,6 +96,8 @@ def handle_client(file_name, addr):
 
 	# wait for sending to finish
 	receiver_thread.join()
+	print('finished handling the client', addr)
+	print('length of sched queue', len(mySched.queue))
 
 
 
