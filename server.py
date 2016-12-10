@@ -70,6 +70,8 @@ def send_pkts(s, addr, file_name):
 		
 		while next_seq < base + MAX_WINDOW_SIZE:
 			l = f.read(512)
+			if not l:
+				break
 			pkt = packet(0, len(l), next_seq, l)
 			send_one_pkt(s, pkt, addr)
 			# add a job to scheduler in case of sending failed
@@ -86,25 +88,34 @@ def send_pkts(s, addr, file_name):
 			continue
 
 def recieve_ACKS(s, sender_thread):
-	while sender_thread.is_alive():
+	while 1:
 		print('Waiting For ACKS...')
-		data, ack_addr = s.recvfrom(1024)
+		try:
+			data, ack_addr = s.recvfrom(1024)
+		except socket.timeout:
+			pass
+
 		ack_pkt = parse_packet(data)
 		# check if ACK (removed check for ack_addr for now)
 		if (ack_pkt.length == 0 and ack_pkt.chksum == ack_pkt.checksum()):
 			print("Received Ack for: ", ack_pkt.seqno, "from",addr)
 			remove_job(ack_pkt)
+
+			print('checking if we receiver should terminate ?', ack_pkt.seqno, largest_seqno_sent, sender_thread.is_alive())
+			if ack_pkt.seqno == largest_seqno_sent and not sender_thread.is_alive():
+				print('receiver_thread is done')
+				return
 		else:
 			print('received incorrect ACK')
 
 
 def handle_client(file_name, addr):
-	global MAX_WINDOW_SIZE
+	global MAX_WINDOW_SIZE, largest_seqno_sent
 
 	#creating new soket for that client
 	s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	s.bind((UDP_IP, UDP_PORT))
-	#s.settimeout(TIMEOUT_VALUE)
+	s.settimeout(TIMEOUT_VALUE)
 
 	# ack for file request
 	s.sendto(packet(0, 0, 0, b'').toBuffer(), addr)
@@ -120,7 +131,7 @@ def handle_client(file_name, addr):
 	sender_thread.join()
 	receiver_thread.join()
 
-	s.sendto(packet(0, 0, 10 ** 7, b'').toBuffer(), addr)
+	s.sendto(packet(0, 0, largest_seqno_sent + 1, b'').toBuffer(), addr)
 
 	print('finished handling the client', addr)
 	print('length of sched queue', len(mySched.queue))
@@ -154,7 +165,7 @@ if __name__ == "__main__":
 
 	sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	sock.bind((UDP_IP, UDP_PORT))
-	#sock.settimeout(TIMEOUT_VALUE)
+	sock.settimeout(TIMEOUT_VALUE)
 
 
 	while True:
