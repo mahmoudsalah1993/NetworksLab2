@@ -6,6 +6,24 @@ UDP_IP = "127.0.0.1"
 UDP_PORT = 9010
 TIMEOUT_VALUE = 3
 plp = 0.1
+WINDOW_SIZE=50
+packet_buffer = [None]*50
+recv_base=1
+
+def increment_recv_base():
+	global recv_base
+	print(recv_base)
+	recv_base+=1
+	if recv_base+WINDOW_SIZE>=len(packet_buffer):
+		while recv_base+WINDOW_SIZE>=len(packet_buffer):
+			packet_buffer.append(None)
+
+
+def write_to_file(file):
+	while packet_buffer[recv_base]!=None:
+		file.write(packet_buffer[recv_base])
+		increment_recv_base()
+
 
 def signal_handler(signum, frame):
 	raise Exception("Timed out!")
@@ -54,19 +72,17 @@ def receive_file(file_name):
 			data, addr = sock.recvfrom(1024)
 			print("chunk received")
 			pkt = parse_packet(data)
-			if(pkt.seqno != expected_seqno):
-				print("Unexpected seqno: ",pkt.seqno, "Expecting: ",expected_seqno)
-				ack(expected_seqno -1)
-				continue
-			if(pkt.chksum != pkt.checksum()):
+			if pkt.seqno >= recv_base and pkt.seqno <= (recv_base+WINDOW_SIZE-1):
+				ack(pkt.seqno)
+				packet_buffer[pkt.seqno] = pkt.data
+			elif pkt.seqno >= (recvfrom -WINDOW_SIZE) and pkt.seqno<recv_base:
+				ack(pkt.seqno)
+			elif(pkt.chksum != pkt.checksum()):
 				print("wrong checksum Expected: ", pkt.chksum, " calculated: ", pkt.checksum)
-				continue
-			expected_seqno += 1
-			f.write(pkt.data)
-			
+			if packet_buffer[recv_base]!=None:
+				write_to_file(f)
 			# removed simulated packets loss
-			ack(pkt.seqno)
-			print("ACK ", pkt.seqno)
+			#print("ACK ", pkt.seqno)
 			
 			# if(randint(1,10) > 10*plp):
 			# 	ack(pkt.seqno)
@@ -83,13 +99,14 @@ def receive_file(file_name):
 
 
 def initialize_param():
-	global UDP_IP,UDP_PORT, CLIENT_PORT, FILE_NAME 
-
+	global UDP_IP,UDP_PORT, CLIENT_PORT, FILE_NAME, WINDOW_SIZE, recv_base 
+	recv_base =1
 	with open('client.in') as param_file:
 		UDP_IP = param_file.readline().rstrip('\n')
 		UDP_PORT = int(param_file.readline())
 		CLIENT_PORT = int(param_file.readline())
 		FILE_NAME = param_file.readline().rstrip('\n')
+		WINDOW_SIZE = int(param_file.readline())
 		
 if __name__ == "__main__":
 	initialize_param()
