@@ -73,19 +73,21 @@ def receive_file(file_name):
 			print("chunk received")
 			pkt = parse_packet(data)
 			if pkt.seqno >= recv_base and pkt.seqno <= (recv_base+WINDOW_SIZE-1):
-				ack(pkt.seqno)
+				if(randint(1,10) > 10*plp):
+					ack(pkt.seqno)
+					print("ACK ", pkt.seqno)
 				packet_buffer[pkt.seqno] = pkt.data
+				
 			elif pkt.seqno >= (recv_base -WINDOW_SIZE) and pkt.seqno<recv_base:
-				ack(pkt.seqno)
+				if(randint(1,10) > 10*plp):
+					ack(pkt.seqno)
+					print("ACK ", pkt.seqno)
 			elif(pkt.chksum != pkt.checksum()):
 				print("wrong checksum Expected: ", pkt.chksum, " calculated: ", pkt.checksum)
 			if packet_buffer[recv_base]!=None:
 				write_to_file(f)
 			# removed simulated packets loss
 			#print("ACK ", pkt.seqno)
-			# if(randint(1,10) > 10*plp):
-			# 	ack(pkt.seqno)
-			# 	print("ACK ", pkt.seqno)
 			if(pkt.length == 0):
 				break
 		except socket.timeout:
