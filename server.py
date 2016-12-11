@@ -20,8 +20,8 @@ plp = 0.1
 
 lock = threading.Lock()
 base = 1
-largest_seqno_sent = 0 # largest seqno sent and recieved ACK for it
-# shared between sender and reciever threads 
+largest_seqno_sent = 0 # largest seqno sent and received ACK for it
+# shared between sender and receiver threads 
 # SHOULDN'T BE ACCESSED DIRECTLY 
 mySched = sched.scheduler(time.time, time.sleep)
 
@@ -93,26 +93,27 @@ def send_pkts(s, addr, file_name):
 		else:
 			continue
 
-def recieve_ACKS(s, sender_thread):
-	while 1:
+def receive_ACKS(s, sender_thread):
+	last_ack_received = 0
+	while sender_thread.is_alive() or last_ack_received != largest_seqno_sent:
 		print('Waiting For ACKS...')
 		try:
 			data, ack_addr = s.recvfrom(1024)
+			ack_pkt = parse_packet(data)
+
+			# check if ACK (removed check for ack_addr for now)
+			if (ack_pkt.length == 0 and ack_pkt.chksum == ack_pkt.checksum()):
+				last_ack_received = ack_pkt.seqno
+				print("Received Ack for: ", ack_pkt.seqno, "from",addr)
+				remove_job(ack_pkt)
+			else:
+				print('received incorrect ACK')
 		except socket.timeout:
+			print('receiving ACKS times out noting received')
 			pass
-
-		ack_pkt = parse_packet(data)
-		# check if ACK (removed check for ack_addr for now)
-		if (ack_pkt.length == 0 and ack_pkt.chksum == ack_pkt.checksum()):
-			print("Received Ack for: ", ack_pkt.seqno, "from",addr)
-			remove_job(ack_pkt)
-
-			print('checking if we receiver should terminate ?', ack_pkt.seqno, largest_seqno_sent, sender_thread.is_alive())
-			if ack_pkt.seqno == largest_seqno_sent and not sender_thread.is_alive():
-				print('receiver_thread is done')
-				return
-		else:
-			print('received incorrect ACK')
+			
+	print('receiver_thread is done')
+	return
 
 
 def handle_client(file_name, addr):
@@ -128,7 +129,7 @@ def handle_client(file_name, addr):
 	print("ACK", 0)
 
 	sender_thread = threading.Thread(target=send_pkts, args=(s, addr, file_name,))
-	receiver_thread = threading.Thread(target=recieve_ACKS, args=(s, sender_thread))
+	receiver_thread = threading.Thread(target=receive_ACKS, args=(s, sender_thread))
 
 	sender_thread.start()
 	receiver_thread.start()
