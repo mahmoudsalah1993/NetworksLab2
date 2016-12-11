@@ -62,7 +62,6 @@ def receive_file(file_name):
 				print("wrong checksum Expected: ", pkt.chksum, " calculated: ", pkt.checksum)
 				continue
 			expected_seqno += 1
-			f.write(pkt.data)
 			
 			# # removed simulated packets loss
 			# ack(pkt.seqno)
@@ -70,6 +69,7 @@ def receive_file(file_name):
 			
 			if(randint(1,10) > 10*plp):
 				ack(pkt.seqno)
+				f.write(pkt.data)
 				print("ACK ", pkt.seqno)
 			else:
 				expected_seqno -= 1
