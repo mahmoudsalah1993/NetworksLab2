@@ -83,15 +83,11 @@ def receive_file(file_name):
 				write_to_file(f)
 			# removed simulated packets loss
 			#print("ACK ", pkt.seqno)
-			
 			# if(randint(1,10) > 10*plp):
 			# 	ack(pkt.seqno)
 			# 	print("ACK ", pkt.seqno)
-			# else:
-			# 	print("ACK wasn't sent ", pkt.seqno)
-			
-			if(pkt.length == 0):
-				break
+			# if(pkt.length == 0):
+			# 	break
 		except socket.timeout:
 			print("Timed out!")
 	f.close()
