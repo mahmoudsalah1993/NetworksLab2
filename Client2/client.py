@@ -5,7 +5,7 @@ from random import randint
 UDP_IP = "127.0.0.1"
 UDP_PORT = 9010
 TIMEOUT_VALUE = 3
-plp = 0.09
+plp = 0.1
 WINDOW_SIZE=50
 packet_buffer = [None]*50
 recv_base=1
@@ -74,15 +74,15 @@ def receive_file(file_name):
 			pkt = parse_packet(data)
 			print(pkt.seqno)
 			if pkt.seqno >= recv_base and pkt.seqno <= (recv_base+WINDOW_SIZE-1):
-		   		if(randint(1,10) > 10*plp):
-		   			ack(pkt.seqno)
-		   			print("ACK ", pkt.seqno)
+		   		# if(randint(1,10) > 10*plp):
+		   		# 	ack(pkt.seqno)
+		   		# 	print("ACK ", pkt.seqno)
 		   		packet_buffer[pkt.seqno] = pkt.data
 				
-			elif pkt.seqno >= (recv_base -WINDOW_SIZE) and pkt.seqno<recv_base:
-				if(randint(1,10) > 10*plp):
-					ack(pkt.seqno)
-					print("ACK ", pkt.seqno)
+			# elif pkt.seqno >= (recv_base -WINDOW_SIZE) and pkt.seqno<recv_base:
+			if(randint(1,10) > 10*plp):
+				ack(pkt.seqno)
+				print("ACK ", pkt.seqno)
 			elif(pkt.chksum != pkt.checksum()):
 				print("wrong checksum Expected: ", pkt.chksum, " calculated: ", pkt.checksum)
 			if packet_buffer[recv_base]!=None:

@@ -12,7 +12,7 @@ import os
 TIMEOUT_VALUE = 1
 UDP_IP = "127.0.0.1"
 UDP_PORT = 9000
-MAX_WINDOW_SIZE = 10
+windowSize = 10
 RANDOM_SEED = 0.6
 SCHEDULING_CONST = 10 ** 8
 plp = 0.1
@@ -74,7 +74,7 @@ def send_pkts(s, addr, file_name):
 	while 1:
 		# print('begining sending with next_seq', next_seq, 'base', base)
 		
-		while next_seq < base + MAX_WINDOW_SIZE:
+		while next_seq < base + windowSize:
 			l = f.read(512)
 			if not l:
 				break
@@ -94,7 +94,7 @@ def send_pkts(s, addr, file_name):
 			continue
 
 def receive_ACKS(s, sender_thread):
-	global MAX_WINDOW_SIZE,ssthresh
+	global windowSize,ssthresh
 	last_ack_received = 0
 	while sender_thread.is_alive() or last_ack_received != largest_seqno_sent:
 		print('Waiting For ACKS...')
@@ -107,26 +107,26 @@ def receive_ACKS(s, sender_thread):
 				last_ack_received = ack_pkt.seqno
 				print("Received Ack for: ", ack_pkt.seqno, "from",addr)
 				remove_job(ack_pkt)
-				if(MAX_WINDOW_SIZE<ssthresh):
-					MAX_WINDOW_SIZE *= 2
+				if(windowSize<ssthresh):
+					windowSize *= 2
 				else:
-					MAX_WINDOW_SIZE+=1
+					windowSize+=1
 			else:
 				print('received incorrect ACK')
 		except socket.timeout:
-			MAX_WINDOW_SIZE=1
+			windowSize=1
 			if(ssthresh>1):
 				ssthresh/=2
 			print('receiving ACKS times out noting received')
 			pass
-		print("ssthresh is",ssthresh," window size ",MAX_WINDOW_SIZE)
+		print("ssthresh is",ssthresh," window size ",windowSize)
 			
 	print('receiver_thread is done')
 	return
 
 
 def handle_client(file_name, addr):
-	global MAX_WINDOW_SIZE, largest_seqno_sent
+	global windowSize, largest_seqno_sent
 
 	#creating new soket for that client
 	s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -162,20 +162,21 @@ def ack(seqno, addr):
 	sock.sendto(ack_pkt.toBuffer(), addr)
 
 def initialize_param():
-	global UDP_PORT, MAX_WINDOW_SIZE, RANDOM_SEED, plp
-
+	global UDP_PORT, windowSize, RANDOM_SEED, plp,MAX_WINDOW_SIZE,windowSize
+	windowSize = 1
 	with open('server.in') as param_file:
 		UDP_PORT = int(param_file.readline())
 		MAX_WINDOW_SIZE = int(param_file.readline())
 		RANDOM_SEED = float(param_file.readline())
 		plp = float(param_file.readline())
 		random.seed(RANDOM_SEED)
+		ssthresh = MAX_WINDOW_SIZE/2
 
 if __name__ == "__main__":
 	initialize_param()
 
 	print('Set listening port to :', UDP_PORT)
-	print('Set MAX_WINDOW_SIZE to :', MAX_WINDOW_SIZE)
+	print('Set windowSize to :', windowSize)
 	print('Set RANDOM_SEED to :', RANDOM_SEED)
 	print('Set probability of packet loss to :', plp)
 
