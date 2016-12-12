@@ -16,7 +16,7 @@ MAX_WINDOW_SIZE = 10
 RANDOM_SEED = 0.6
 SCHEDULING_CONST = 10 ** 8
 plp = 0.1
-
+ssthresh = 64
 
 lock = threading.Lock()
 base = 1
@@ -94,6 +94,7 @@ def send_pkts(s, addr, file_name):
 			continue
 
 def receive_ACKS(s, sender_thread):
+	global MAX_WINDOW_SIZE,ssthresh
 	last_ack_received = 0
 	while sender_thread.is_alive() or last_ack_received != largest_seqno_sent:
 		print('Waiting For ACKS...')
@@ -106,11 +107,19 @@ def receive_ACKS(s, sender_thread):
 				last_ack_received = ack_pkt.seqno
 				print("Received Ack for: ", ack_pkt.seqno, "from",addr)
 				remove_job(ack_pkt)
+				if(MAX_WINDOW_SIZE<ssthresh):
+					MAX_WINDOW_SIZE *= 2
+				else:
+					MAX_WINDOW_SIZE+=1
 			else:
 				print('received incorrect ACK')
 		except socket.timeout:
+			MAX_WINDOW_SIZE=1
+			if(ssthresh>1):
+				ssthresh/=2
 			print('receiving ACKS times out noting received')
 			pass
+		print("ssthresh is",ssthresh," window size ",MAX_WINDOW_SIZE)
 			
 	print('receiver_thread is done')
 	return

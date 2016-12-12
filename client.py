@@ -5,7 +5,7 @@ from random import randint
 UDP_IP = "127.0.0.1"
 UDP_PORT = 9010
 TIMEOUT_VALUE = 3
-plp = 0.1
+plp = 0.09
 WINDOW_SIZE=50
 packet_buffer = [None]*50
 recv_base=1
@@ -70,13 +70,14 @@ def receive_file(file_name):
 		try:
 			# write data to file
 			data, addr = sock.recvfrom(1024)
-			print("chunk received")
+			print("chunk received ")
 			pkt = parse_packet(data)
+			print(pkt.seqno)
 			if pkt.seqno >= recv_base and pkt.seqno <= (recv_base+WINDOW_SIZE-1):
-				if(randint(1,10) > 10*plp):
-					ack(pkt.seqno)
-					print("ACK ", pkt.seqno)
-				packet_buffer[pkt.seqno] = pkt.data
+		   		if(randint(1,10) > 10*plp):
+		   			ack(pkt.seqno)
+		   			print("ACK ", pkt.seqno)
+		   		packet_buffer[pkt.seqno] = pkt.data
 				
 			elif pkt.seqno >= (recv_base -WINDOW_SIZE) and pkt.seqno<recv_base:
 				if(randint(1,10) > 10*plp):
