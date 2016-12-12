@@ -5,7 +5,7 @@ from random import randint
 UDP_IP = "127.0.0.1"
 UDP_PORT = 9010
 TIMEOUT_VALUE = 3
-plp = 0.1
+plp = 0
 WINDOW_SIZE=50
 packet_buffer = [None]*50
 recv_base=1

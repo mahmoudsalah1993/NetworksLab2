@@ -9,7 +9,7 @@ import os
 
 # NOTE : all socket.settimeout() is commented out
 
-TIMEOUT_VALUE = 1
+TIMEOUT_VALUE = 0.1
 UDP_IP = "127.0.0.1"
 UDP_PORT = 9000
 windowSize = 10
@@ -56,7 +56,7 @@ def remove_job(pkt):
 
 		except ValueError:
 			print('Received ack for', pkt.seqno, 'but it\'s not in queue')
-	print('*****active_events', list(active_events.keys()), 'sched queue size', len(mySched.queue))
+	print('\n*****active_events', list(active_events.keys()), 'sched queue size', len(mySched.queue))
 	return len(list(active_events.keys())) == 0
 
 def send_one_pkt(socket, pkt, addr):
@@ -79,7 +79,10 @@ def send_pkts(s, addr, file_name):
 			if not l:
 				break
 			pkt = packet(0, len(l), next_seq, l)
-			send_one_pkt(s, pkt, addr)
+			if(random.randint(1,10) > 10*plp):
+				send_one_pkt(s, pkt, addr)
+			else:
+				print(' ==>> didn\'t send pkt with seqno:', pkt.seqno)
 			# add a job to scheduler in case of sending failed
 			add_job(s, pkt, addr)
 			next_seq += 1
@@ -97,6 +100,8 @@ def receive_ACKS(s, sender_thread):
 	global windowSize,ssthresh
 	last_ack_received = 0
 	while sender_thread.is_alive() or last_ack_received != largest_seqno_sent:
+		if(not sender_thread.is_alive()):
+			break
 		print('Waiting For ACKS...')
 		try:
 			data, ack_addr = s.recvfrom(1024)
