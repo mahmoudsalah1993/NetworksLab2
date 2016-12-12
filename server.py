@@ -162,7 +162,7 @@ def ack(seqno, addr):
 	sock.sendto(ack_pkt.toBuffer(), addr)
 
 def initialize_param():
-	global UDP_PORT, windowSize, RANDOM_SEED, plp,MAX_WINDOW_SIZE,windowSize
+	global UDP_PORT, windowSize, RANDOM_SEED, plp,MAX_WINDOW_SIZE,windowSize,ssthresh
 	windowSize = 1
 	with open('server.in') as param_file:
 		UDP_PORT = int(param_file.readline())
