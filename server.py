@@ -87,10 +87,15 @@ def send_pkts(s, addr, file_name):
 			add_job(s, pkt, addr)
 			next_seq += 1
 		
-		mySched.run()
+		mySched.run(not enable_fast_mode)
 		# check if still there some part of the file not sent
 		if f.tell() == os.fstat(f.fileno()).st_size:
 			f.close()
+			
+			if enable_fast_mode:
+				while len(mySched.queue) > 0:
+					mySched.run()
+					
 			print('sender thread done', file_name, 'to', addr)
 			return
 		else:
@@ -129,6 +134,7 @@ def receive_ACKS(s, sender_thread):
 	print('receiver_thread is done')
 	return
 
+enable_fast_mode = True
 
 def handle_client(file_name, addr):
 	global windowSize, largest_seqno_sent
