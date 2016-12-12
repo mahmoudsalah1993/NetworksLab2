@@ -114,7 +114,7 @@ def receive_ACKS(s, sender_thread):
 				remove_job(ack_pkt)
 				if(windowSize<ssthresh):
 					windowSize *= 2
-				else:
+				elif(windowSize<MAX_WINDOW_SIZE):
 					windowSize+=1
 			else:
 				print('received incorrect ACK')
